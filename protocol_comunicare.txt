@@ -1,0 +1,38 @@
+@@@ Autentificare @@@
+Client -> Server | pachet cu numele de utilizator
+Server -> Client | pachet de confirmare sau de eroare (in cazul in care utilizatorul nu exista)
+Client -> Server | pachet cu parola
+Server -> Client | pachet de confirmare sau de eroare (in cazul in care parola este gresita)
+
+
+@@@ Trimitere de mesaje text @@@
+Client -> Server | pachet cu mesaj de tip text
+Server -> Client | pachet de cofirmare
+Server -> Client | mesajul de tip text primit de server va fi trimis catre toti utilizatorii conectati
+Client -> Server | pachet de confirmare
+
+
+@@@ Deconectare de la server @@@
+Client -> Server | pachet cu cerere de deconectare
+Server -> Client | pachet pentru confirmarea cererii de deconectare
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+@@@ Header pachet @@@
+
+-> char tip_mesaj;
+	-> 'c' | mesaj de confirmare
+	-> 'e' | mesaj de eroare (utilizator inexistent, parola gresita)
+	-> 'd' | cerere de deconectare de la server
+	-> 'm' | mesaj de tip text
+
+-> int len;	| lungimea corpului mesajului in numar de octeti (numar intreg, strict pozitiv)
+
+
+@@@ Body pachet @@@
+
+-> char *mesaj;	| mesajul de tip text care va fi trimit intre client si server si invers
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
