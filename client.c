@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdbool.h>
- #include <netdb.h>
+#include <netdb.h>
 
 #define SERVER_PORT		5678
 #define SERVER_ADDRESS	"127.0.0.1"

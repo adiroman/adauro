@@ -9,30 +9,73 @@ Server -> Client | pachet de confirmare sau de eroare (in cazul in care parola e
 Client -> Server | pachet cu mesaj de tip text
 Server -> Client | pachet de cofirmare
 Server -> Client | mesajul de tip text primit de server va fi trimis catre toti utilizatorii conectati
-Client -> Server | pachet de confirmare
+Client -> Server | pachete de confirmare de la toti utilizatorii conectati
 
 
 @@@ Deconectare de la server @@@
 Client -> Server | pachet cu cerere de deconectare
 Server -> Client | pachet pentru confirmarea cererii de deconectare
-
+Client -> Server | pachet de confirmare a deconectarii
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-@@@ Header pachet @@@
+@@@ Header pachet -> 5 octeti @@@
 
 -> char tip_mesaj;
 	-> 'c' | mesaj de confirmare
 	-> 'e' | mesaj de eroare (utilizator inexistent, parola gresita)
 	-> 'd' | cerere de deconectare de la server
 	-> 'm' | mesaj de tip text
+	-> 'u' | pachet care contine numele de utilizator
+	-> 'p' | pachet care contine parola
 
 -> int len;	| lungimea corpului mesajului in numar de octeti (numar intreg, strict pozitiv)
+			| OBSERVATIE! Doar in cazul pachetelor de tip 'm', u' si 'p' ma intereseaza acet camp!
+
+OBSERVATIE! Headerul il trimit intotdeauna complet, prima data header.tip_mesaj (1 octet), apoi header.len (4 octeti)!
 
 
-@@@ Body pachet @@@
 
--> char *mesaj;	| mesajul de tip text care va fi trimit intre client si server si invers
+@@@ Body pachet -> il citesc doar dupa ce citesc header-ul @@@
 
+-> char *mesaj;	| mesajul de tip text care va fi trimit intre client si server si invers (daca tip_mesaj = 'm')
+				| numele de utilizator (daca tip_mesaj = 'u')
+				| parola (daca tip_mesaj = 'p')
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Pentru pachetele de EROARE:
+
+Daca s-a primit un mesaj de eroare, atunci campul len va contine un codul erorii dupa cum urmeaza:
+
+	-> len = 1	| se astepta un pachet de tipul 'c'
+	-> len = 2	| se astepta un pachet de tipul 'e'
+	-> len = 3	| se astepta un pachet de tipul 'd'
+	-> len = 4	| se astepta un pachet de tipul 'm'
+	-> len = 5	| se astepta un pachet de tipul 'u'
+	-> len = 6	| se astpeta un pachet de tipul 'p'
+	-> len = 11	| numele de utlizator nu exista
+	-> len = 12 | parola este gresita
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Pentru nume de UTILIZATOR si PAROLA:
+
+Se considera ca numele de utilizator nu depaseste 50 de caractere, iar clientul va face verificarile necesare.
+Serverul considera ca datele trimise de client sunt valide.
+
+Se considera ca parola nu depaseste 100 de caractere, iar clientul va face verificarile necesare.
+Serverul considera ca datele trimise de client sunt valide.
+
+
+(Clientul va face verificarile necesare pentru a nu creste traficul din retea cu niste date eronate.)
+
+
+#define MAX_USERNAME	50
+#define MAX_PASSWORD	100
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
