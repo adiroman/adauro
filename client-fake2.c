@@ -142,23 +142,40 @@ int main(int argc, char const *argv[])
 	printf("Lungime mesaj: %d\n", citireHeader_Lungime(server_sock));
 
 
-	printf("Tip mesaj: %c\n", citireHeader_TipMesaj(server_sock));
-	lungimeMesaj = citireHeader_Lungime(server_sock);
-	printf("Lungime mesaj: %d\n", lungimeMesaj);
-
-
-	tmpBuffer = citireBody(server_sock, lungimeMesaj);
-	printf("%s\n", tmpBuffer);
-
-
+	my_head.tip_mesaj = 'd';
+	my_head.len = 0;
+	sprintf(buf, "%c", my_head.tip_mesaj);
+	write(server_sock, buf, 1);
+	sprintf(buf, "%d", my_head.len);
+	write(server_sock, buf, 4);
 
 	printf("Tip mesaj: %c\n", citireHeader_TipMesaj(server_sock));
-	lungimeMesaj = citireHeader_Lungime(server_sock);
-	printf("Lungime mesaj: %d\n", lungimeMesaj);
+	printf("Lungime mesaj: %d\n", citireHeader_Lungime(server_sock));
+
+	my_head.tip_mesaj = 'c';
+	my_head.len = 0;
+	sprintf(buf, "%c", my_head.tip_mesaj);
+	write(server_sock, buf, 1);
+	sprintf(buf, "%d", my_head.len);
+	write(server_sock, buf, 4);
+
+	// printf("Tip mesaj: %c\n", citireHeader_TipMesaj(server_sock));
+	// lungimeMesaj = citireHeader_Lungime(server_sock);
+	// printf("Lungime mesaj: %d\n", lungimeMesaj);
 
 
-	tmpBuffer = citireBody(server_sock, lungimeMesaj);
-	printf("%s\n", tmpBuffer);
+	// tmpBuffer = citireBody(server_sock, lungimeMesaj);
+	// printf("%s\n", tmpBuffer);
+
+
+
+	// printf("Tip mesaj: %c\n", citireHeader_TipMesaj(server_sock));
+	// lungimeMesaj = citireHeader_Lungime(server_sock);
+	// printf("Lungime mesaj: %d\n", lungimeMesaj);
+
+
+	// tmpBuffer = citireBody(server_sock, lungimeMesaj);
+	// printf("%s\n", tmpBuffer);
 
 	return 0;
 }

@@ -105,6 +105,18 @@ bool parolaValida(char *nume_utilizator, char *parola){
 	return true;
 }
 
+void stergereSocket(int socket){
+	int i, k;
+
+	for (i = 0; i < nrClienti; ++i)
+		if (sock_clienti[i] == socket){
+			for (k =  i; k < nrClienti - 1; ++k)
+				sock_clienti[k] = sock_clienti[k + 1];
+			--nrClienti;
+			break;
+		}
+}
+
 void *procesare_cerere(void *arg){
 
 	int client_sock = *((int*)arg);
@@ -173,7 +185,7 @@ void *procesare_cerere(void *arg){
 		client_head.tip_mesaj = citireHeader_TipMesaj(client_sock);
 		client_head.len = citireHeader_Lungime(client_sock);
 
-		if (client_head.tip_mesaj == 'm'){
+		if (client_head.tip_mesaj == 'm'){			// mesaj de tip text
 			client_body.mesaj = citireBody(client_sock, client_head.len);
 
 			// trimit confirmare de primire catre client
@@ -200,22 +212,29 @@ void *procesare_cerere(void *arg){
 			// confirm pachetele
 
 		}
-		else if (client_head.tip_mesaj == 'd'){
+		else if (client_head.tip_mesaj == 'd'){		// cerere de deconectare
 
-			// deconectare client
+			// trimit confirmare clientului
+			server_head.tip_mesaj = 'c';
+			server_head.len = 0;
+			trimitereHeader(server_head, client_sock);
 
-			// TREBUIE SA STERG SOCKET-UL DIN TABLOUL CU SOCKET-URI
+			// astept confirmarea de la client
+			client_head.tip_mesaj = citireHeader_TipMesaj(client_sock);
+			client_head.len = citireHeader_Lungime(client_sock);
+
+			// dupa ce am primit confirmarea de la client, deconectez clientul de la socket si inchei firul de executie
+			if (client_head.tip_mesaj == 'c'){
+				stergereSocket(client_sock);
+				break;
+			}
 		}
-		else{
-
-			// mai pot avea si alte tipuri de mesaje?
-
-			// daca protocolul e respectat, nu.
-		}
+		// daca protocolul e respectat, dupa autentificare pot sa am doar mesaje de tipul 'd' si 'm'
 	}
 
+	printf("Client <%s> deconectat\n", nume_utilizator);
 
-	// FINALIZARE THREAD !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	pthread_exit(NULL);
 }
 
 int main(int argc, char const *argv[]){
@@ -272,6 +291,8 @@ int main(int argc, char const *argv[]){
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	// pthread_join !!!!!!!
 
 	return -1;
 }
