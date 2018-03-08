@@ -9,7 +9,6 @@ Server -> Client | pachet de confirmare sau de eroare (in cazul in care parola e
 Client -> Server | pachet cu mesaj de tip text
 Server -> Client | pachet de cofirmare
 Server -> Client | mesajul de tip text primit de server va fi trimis catre toti utilizatorii conectati
-Client -> Server | pachete de confirmare de la toti utilizatorii conectati
 
 
 @@@ Deconectare de la server @@@

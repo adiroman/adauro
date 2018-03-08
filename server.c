@@ -178,6 +178,8 @@ void *procesare_cerere(void *arg){
 		trimitereHeader(server_head, client_sock);
 	}
 
+	printf("Client <%s> conectat\n", nume_utilizator);
+
 	while(true){
 
 		// dupa ce m-am autentificat, pot sa primesc mesaje de tip text sau cerere de deconectare
