@@ -9,17 +9,17 @@
 #include <stdbool.h>
 #include <pthread.h>
 
-#define SERVER_PORT		5679
+#define SERVER_PORT		5681
 #define SERVER_ADDRESS	"127.0.0.1"
 #define SERVER_BACKLOG	15		// numarul maxim de clienti din coada de conexiuni
 #define MAX_BUFFER		1024
 #define MAX_USERNAME	50
 #define MAX_PASSWORD	100
-#define MAX_SOCK		15		// numar maxim de socket-uri (numarul maxim de utilizatori care se pot conecta la server)
-#define MAX_HOP			100		// numarul maxim 		
+#define MAX_SOCK		1		// numar maxim de socket-uri (numarul maxim de utilizatori care se pot conecta la server)	
 
 int sock_clienti[MAX_SOCK];		// descriptorii de fisier pentru toate socket-urile deschise
 int nrClienti;					// numarul de clienti conectati (nr de socket-uri deschise)
+int grup[MAX_SOCK];				// fiecare intrare va memora numarul grupului din care face parte utilizatorul respectiv
 
 int server_sock;
 
@@ -36,7 +36,7 @@ char citireHeader_TipMesaj(int fd){
 	char buffer[1];
 
 	if(read(fd, buffer, 1) < 0){
-		perror("Eroare la citirea campului tip_mesaj din header\n");
+		printf("Eroare la citirea campului tip_mesaj din header [sock = %d]\n", fd);
 		exit(EXIT_FAILURE);
 	}
 
@@ -48,7 +48,7 @@ int citireHeader_Lungime(int fd){
 	int nr;
 
 	if(read(fd, buffer, 4) < 0){
-		perror("Eroare la citirea campului len din header\n");
+		printf("Eroare la citirea campului len din header [sock = %d]\n", fd);
 		exit(EXIT_FAILURE);
 	}
 
@@ -62,13 +62,13 @@ void trimitereHeader(head m_head, int client_sock){
 
 	sprintf(buffer, "%c", m_head.tip_mesaj);
 	if(write(client_sock, buffer, 1) < 0){
-		perror("Eroare la transmiterea campului tip_mesaj din header\n");
+		printf("Eroare la transmiterea campului tip_mesaj din header [sock = %d]\n", client_sock);
 		exit(EXIT_FAILURE);
 	}
 
 	sprintf(buffer, "%d", m_head.len);
 	if(write(client_sock, buffer, 4) < 0){
-		perror("Eroare la transmiterea campului len din header\n");
+		printf("Eroare la transmiterea campului len din header [sock = %d]\n", client_sock);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -79,7 +79,7 @@ char* citireBody(int fd, int len){
 	buffer = malloc (sizeof(char) * (len + 1));
 
 	if(read(fd, buffer, len) < 0){
-		perror("Eroare la citirea campului mesaj din body\n");
+		printf("Eroare la citirea campului mesaj din body [sock = %d]\n", fd);
 		exit(EXIT_FAILURE);
 	}
 
@@ -90,7 +90,7 @@ char* citireBody(int fd, int len){
 void trimitereBody(body m_body, int client_sock){
 
 	if(write(client_sock, m_body.mesaj, strlen(m_body.mesaj)) < 0){
-		perror("Eroare la transmiterea campului mesaj din body\n");
+		printf("Eroare la transmiterea campului mesaj din body [sock = %d]\n", client_sock);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -105,33 +105,53 @@ bool parolaValida(char *nume_utilizator, char *parola){
 	return true;
 }
 
-void stergereSocket(int socket){
+int grupConversatie(char *nume_utilizator){
+
+	// Functia va cauta numarul grupului de conversatie asociat utilizatorului dat prin nume_utilizator
+	// Functia va returna un numar natural pozitiv (0, 1, ...) care va reprezenta grupul
+
+	return 1;
+}
+
+void stergereClient(int socket){
 	int i, k;
 
 	for (i = 0; i < nrClienti; ++i)
 		if (sock_clienti[i] == socket){
-			for (k =  i; k < nrClienti - 1; ++k)
+
+			for (k =  i; k < nrClienti - 1; ++k){
 				sock_clienti[k] = sock_clienti[k + 1];
+				grup[k] = grup[k + 1];
+			}
+
 			--nrClienti;
 			break;
 		}
 }
+
+int getPos (int socket){
+	int i;
+
+	// functia returneaza pozitia (indicele) din tabloul sock_clienti la care se afla clientul cu socketul primit ca parametru
+
+	for (i = 0; i < nrClienti; ++i){
+		if (sock_clienti[i] == socket) return i;
+	}
+
+	return -1; // nu trebuie sa ajung aici
+}
+
+
+
 
 void *procesare_cerere(void *arg){
 
 	int client_sock = *((int*)arg);
 	head client_head, server_head;
 	body client_body;
+
 	char nume_utilizator[MAX_USERNAME];
-	int i;
-
-	bool confirmat[MAX_SOCK];	// confirmat[i] = false	-> clientul i (socketu-ul de la pozitia i din sock_clienti) NU a confirmat pachetul de tip mesaj - 'm'
-								// confirmat[i] = true 	-> clientul i a confirmat pachetul
-	int nrPacheteNeconfirmate;
-
-	// consider ca niciun pachet nu trebuie confirmat (toate pachetele sunt confirmate)
-	for (i = 0; i < MAX_SOCK; ++i)
-		confirmat[i] = true;
+	int i, grup_utilizator;
 
 	// astept ca clientul sa imi trimita un nume de utilizator valid (mesaj de tip 'u')
 	while (true){
@@ -143,8 +163,10 @@ void *procesare_cerere(void *arg){
 		client_body.mesaj = citireBody(client_sock, client_head.len);
 
 		if(utilizatorValid(client_body.mesaj)){
-			// memorez numele de utilizator pentru a putea fi folosit in continuare in sesiune
+			// memorez numele de utilizator si grupul pentru a putea fi folosit in continuare in sesiune
 			strcpy(nume_utilizator, client_body.mesaj);
+			grup_utilizator = grupConversatie(nume_utilizator);
+			// grup_utilizator = client_head.len;		PENTRU TESTARE
 
 			//trimit mesaj de confirmare catre client
 			server_head.tip_mesaj = 'c';
@@ -169,6 +191,10 @@ void *procesare_cerere(void *arg){
 			server_head.tip_mesaj = 'c';
 			server_head.len = 0;
 			trimitereHeader(server_head, client_sock);
+
+			// memorez grupul din care face parte utilizatorul
+			grup[getPos(client_sock)] = grup_utilizator;
+
 			break;
 		}
 
@@ -178,7 +204,9 @@ void *procesare_cerere(void *arg){
 		trimitereHeader(server_head, client_sock);
 	}
 
-	printf("Client <%s> conectat\n", nume_utilizator);
+	printf("Client <%s> conectat [sock = %d]\n", nume_utilizator, client_sock);
+
+
 
 	while(true){
 
@@ -195,24 +223,16 @@ void *procesare_cerere(void *arg){
 			server_head.len = 0;
 			trimitereHeader(server_head, client_sock);
 
-			printf("%s\n", client_body.mesaj);
-
 			// trimit mesajul catre toti utilizatorii conectati
 			server_head.tip_mesaj = 'm';
 			server_head.len = client_head.len;
+
 			for (i = 0; i < nrClienti; ++i){
-				trimitereHeader(server_head, sock_clienti[i]);
-				trimitereBody(client_body, sock_clienti[i]);
-
-				// marchez pachetul ca neconfirmat
-				confirmat[i] = false;
+				if(grup_utilizator == grup[i]){
+					trimitereHeader(server_head, sock_clienti[i]);
+					trimitereBody(client_body, sock_clienti[i]);
+				}
 			}
-
-			// numarul pachetelor neconfirmate pentru mesajul trimis este egal cu numarul clientilor conectati la server
-			nrPacheteNeconfirmate = nrClienti;
-
-			// confirm pachetele
-
 		}
 		else if (client_head.tip_mesaj == 'd'){		// cerere de deconectare
 
@@ -225,9 +245,10 @@ void *procesare_cerere(void *arg){
 			client_head.tip_mesaj = citireHeader_TipMesaj(client_sock);
 			client_head.len = citireHeader_Lungime(client_sock);
 
+
 			// dupa ce am primit confirmarea de la client, deconectez clientul de la socket si inchei firul de executie
 			if (client_head.tip_mesaj == 'c'){
-				stergereSocket(client_sock);
+				stergereClient(client_sock);
 				break;
 			}
 		}
@@ -246,7 +267,7 @@ int main(int argc, char const *argv[]){
 
 	// creez socket-ul
 	if((server_sock = socket(PF_INET, SOCK_STREAM, 0)) < 0){
-		perror("Eroare la crearea socket-ului\n");
+		printf("Eroare la crearea socket-ului\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -256,13 +277,13 @@ int main(int argc, char const *argv[]){
 	inet_pton(PF_INET, SERVER_ADDRESS, &my_addr.sin_addr);
 
 	if(bind(server_sock, (struct sockaddr*)&my_addr, sizeof(my_addr)) < 0){
-		perror("Eroare la executarea apelului bind\n");
+		printf("Eroare la executarea apelului bind\n");
 		exit(EXIT_FAILURE);
 	}
 
 	// anunt sistemul de operare ca doresc sa accept conexiuni
 	if(listen(server_sock, SERVER_BACKLOG) < 0){
-		perror("Eroare la executarea apelului listen\n");
+		printf("Eroare la executarea apelului listen\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -272,25 +293,24 @@ int main(int argc, char const *argv[]){
 
 	while(true){
 
-		if (nrClienti == MAX_SOCK){
-			// daca am atins numarul maxim de clienti acceptati de server, nu accept urmatorul client
-			continue;
-		}
+		if(nrClienti < MAX_SOCK){
 
-		// preiau o cerere de la un proces client din coada de conexiuni
-		if((client_sock = accept(server_sock, (struct sockaddr*)&my_addr, &rlen)) < 0){
-			perror("Eroare la executarea apelului accept\n");
-			exit(EXIT_FAILURE);
-		}
+			// preiau o cerere de la un proces client din coada de conexiuni
+			if((client_sock = accept(server_sock, (struct sockaddr*)&my_addr, &rlen)) < 0){
+				printf("Eroare la executarea apelului accept\n");
+				exit(EXIT_FAILURE);
+			}
 
-		// pun socket-ul in tabloul de socket-uri
-		sock_clienti[nrClienti++] = client_sock;
+			// pun socket-ul in tabloul de socket-uri
+			sock_clienti[nrClienti] = client_sock;
+			++nrClienti;
 
-		pthread_t thread_id;
+			pthread_t thread_id;
 
-		if(pthread_create(&thread_id, NULL, &procesare_cerere, &client_sock) != 0){
-			perror("Eroare la crearea unui fir de executie nou\n");
-			exit(EXIT_FAILURE);
+			if(pthread_create(&thread_id, NULL, &procesare_cerere, &client_sock) != 0){
+				printf("Eroare la crearea unui fir de executie nou\n");
+				exit(EXIT_FAILURE);
+			}
 		}
 	}
 

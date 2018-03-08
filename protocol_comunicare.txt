@@ -78,3 +78,12 @@ Serverul considera ca datele trimise de client sunt valide.
 #define MAX_PASSWORD	100
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+GRUP de comunicare:
+
+-> in fisierul cu nume de utilizatori si parola va fi mentionat si grupul din care va face fiecare utilizator
+-> grupul se va da sub forma unui numar natural pozitiv (0, 1, ...)
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
