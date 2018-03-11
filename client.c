@@ -37,6 +37,49 @@ typedef struct body{
 	char *mesaj;
 } body;
 
+char citireHeader_TipMesaj(int fd){
+	char buffer[1];
+
+	if(read(fd, buffer, 1) < 0){
+		perror("Eroare la citirea campului tip_mesaj din header\n");
+		exit(EXIT_FAILURE);
+	}
+
+	return buffer[0];
+}
+int citireHeader_Lungime(int fd){
+	char buffer[4];
+	int nr;
+
+	if(read(fd, buffer, 4) < 0){
+		perror("Eroare la citirea campului len din header\n");
+		exit(EXIT_FAILURE);
+	}
+
+	nr = atoi(buffer);
+
+	return nr;
+}
+char* citireBody(int fd, int len){
+
+	char* buffer;
+	buffer = malloc (sizeof(char) * (len + 1));
+
+	if(read(fd, buffer, len) < 0){
+		perror("Eroare la citirea campului mesaj din body\n");
+		exit(EXIT_FAILURE);
+	}
+
+	buffer[len] = '\0';
+	return buffer;
+}
+void trimitereBody(body m_body, int client_sock){
+
+	if(write(client_sock, m_body.mesaj, strlen(m_body.mesaj)) < 0){
+		perror("Eroare la transmiterea campului mesaj din body\n");
+		exit(EXIT_FAILURE);
+	}
+}
 int main(int argc, char const *argv[])
 {
 	int server_sock, client_sock;
@@ -54,7 +97,9 @@ int main(int argc, char const *argv[])
 
 	connect(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
-	while(true);
+	while(true){
+		
+	}
 
 	return 0;
 }

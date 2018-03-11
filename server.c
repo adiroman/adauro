@@ -8,9 +8,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
-
+#if defined(__APPLE__)
+#  define COMMON_DIGEST_FOR_OPENSSL
+#  include <CommonCrypto/CommonDigest.h>
+#  define SHA1 CC_SHA1
+#else
+#  include <openssl/md5.h>
+#endif
 #define SERVER_PORT		5679
-#define SERVER_ADDRESS	"127.0.0.1"
+#define SERVER_ADDRESS	"192.168.0.110"
 #define SERVER_BACKLOG	15		// numarul maxim de clienti din coada de conexiuni
 #define MAX_BUFFER		1024
 #define MAX_USERNAME	50
@@ -22,7 +28,32 @@ int sock_clienti[MAX_SOCK];		// descriptorii de fisier pentru toate socket-urile
 int nrClienti;					// numarul de clienti conectati (nr de socket-uri deschise)
 
 int server_sock;
+char *str2md5(const char *str, int length) {
+    int n;
+    MD5_CTX c;
+    unsigned char digest[16];
+    char *out = (char*)malloc(33);
 
+    MD5_Init(&c);
+
+    while (length > 0) {
+        if (length > 512) {
+            MD5_Update(&c, str, 512);
+        } else {
+            MD5_Update(&c, str, length);
+        }
+        length -= 512;
+        str += 512;
+    }
+
+    MD5_Final(digest, &c);
+
+    for (n = 0; n < 16; ++n) {
+        snprintf(&(out[n*2]), 16*2, "%02x", (unsigned int)digest[n]);
+    }
+
+    return out;
+}
 typedef struct head{
 	char tip_mesaj;
 	int len;
@@ -59,7 +90,7 @@ int citireHeader_Lungime(int fd){
 
 void trimitereHeader(head m_head, int client_sock){
 	char buffer[4];
-
+	printf("trimit mesaj tip %c\n",m_head.tip_mesaj);
 	sprintf(buffer, "%c", m_head.tip_mesaj);
 	if(write(client_sock, buffer, 1) < 0){
 		perror("Eroare la transmiterea campului tip_mesaj din header\n");
@@ -96,13 +127,45 @@ void trimitereBody(body m_body, int client_sock){
 }
 
 bool utilizatorValid(char *nume_utilizator){
-
-	return true;
+	FILE *f;
+	char buf[50],i=0;
+	f=fopen("users.txt","r+");
+	while(fgets(buf,50,f)!=NULL){
+		if(i%2==0){
+			buf[strlen(buf)-1]=buf[strlen(buf)];
+			if(strcmp(nume_utilizator,buf)==0){
+				fclose(f);
+				return true;
+			}
+		}
+		i++;
+	}
+	fclose(f);
+	return false;
 }
 
 bool parolaValida(char *nume_utilizator, char *parola){
-
-	return true;
+	FILE *f;
+	char buf[50],i=0;
+	f=fopen("users.txt","r+");
+	while(fgets(buf,50,f)!=NULL){
+		if(i%2==0){
+			buf[strlen(buf)-1]=buf[strlen(buf)];
+			
+			if(strcmp(nume_utilizator,buf)==0){
+				//adi-adj; anca-ancau; robert-3210
+				fgets(buf,50,f);
+				buf[strlen(buf)-1]=buf[strlen(buf)];
+				if(strcmp(parola,buf)==0){
+					fclose(f);
+					return true;
+				}
+			}
+		}
+		i++;
+	}
+	fclose(f);
+	return false;
 }
 
 void stergereSocket(int socket){
@@ -124,7 +187,6 @@ void *procesare_cerere(void *arg){
 	body client_body;
 	char nume_utilizator[MAX_USERNAME];
 	int i;
-
 	bool confirmat[MAX_SOCK];	// confirmat[i] = false	-> clientul i (socketu-ul de la pozitia i din sock_clienti) NU a confirmat pachetul de tip mesaj - 'm'
 								// confirmat[i] = true 	-> clientul i a confirmat pachetul
 	int nrPacheteNeconfirmate;
@@ -138,18 +200,17 @@ void *procesare_cerere(void *arg){
 		// citesc header-ul
 		client_head.tip_mesaj = citireHeader_TipMesaj(client_sock);
 		client_head.len = citireHeader_Lungime(client_sock);
-
 		// citesc numele utilizatorului din corpul pachetului
 		client_body.mesaj = citireBody(client_sock, client_head.len);
-
 		if(utilizatorValid(client_body.mesaj)){
 			// memorez numele de utilizator pentru a putea fi folosit in continuare in sesiune
 			strcpy(nume_utilizator, client_body.mesaj);
-
+			
 			//trimit mesaj de confirmare catre client
 			server_head.tip_mesaj = 'c';
 			server_head.len = 0;
 			trimitereHeader(server_head, client_sock);
+			printf("am trimis confirmare\n");
 			break;
 		}
 
@@ -164,8 +225,8 @@ void *procesare_cerere(void *arg){
 		client_head.tip_mesaj = citireHeader_TipMesaj(client_sock);
 		client_head.len = citireHeader_Lungime(client_sock);
 		client_body.mesaj = citireBody(client_sock, client_head.len);
-
-		if(parolaValida(nume_utilizator, client_body.mesaj)){
+		char *s=str2md5(client_body.mesaj,client_head.len);
+		if(parolaValida(nume_utilizator, s)){
 			server_head.tip_mesaj = 'c';
 			server_head.len = 0;
 			trimitereHeader(server_head, client_sock);
@@ -184,6 +245,7 @@ void *procesare_cerere(void *arg){
 
 		client_head.tip_mesaj = citireHeader_TipMesaj(client_sock);
 		client_head.len = citireHeader_Lungime(client_sock);
+		printf("Am primtit tip mesaj %c\n",client_head.tip_mesaj);
 
 		if (client_head.tip_mesaj == 'm'){			// mesaj de tip text
 			client_body.mesaj = citireBody(client_sock, client_head.len);
@@ -199,11 +261,13 @@ void *procesare_cerere(void *arg){
 			server_head.tip_mesaj = 'm';
 			server_head.len = client_head.len;
 			for (i = 0; i < nrClienti; ++i){
-				trimitereHeader(server_head, sock_clienti[i]);
-				trimitereBody(client_body, sock_clienti[i]);
+				if(sock_clienti[i]!=client_sock){
+					trimitereHeader(server_head, sock_clienti[i]);
+					trimitereBody(client_body, sock_clienti[i]);
 
-				// marchez pachetul ca neconfirmat
-				confirmat[i] = false;
+					// marchez pachetul ca neconfirmat
+					confirmat[i] = false;
+				}
 			}
 
 			// numarul pachetelor neconfirmate pentru mesajul trimis este egal cu numarul clientilor conectati la server
@@ -218,15 +282,20 @@ void *procesare_cerere(void *arg){
 			server_head.tip_mesaj = 'c';
 			server_head.len = 0;
 			trimitereHeader(server_head, client_sock);
-
+			printf("confirm cererea de deconectare\n");
 			// astept confirmarea de la client
 			client_head.tip_mesaj = citireHeader_TipMesaj(client_sock);
 			client_head.len = citireHeader_Lungime(client_sock);
-
+			
 			// dupa ce am primit confirmarea de la client, deconectez clientul de la socket si inchei firul de executie
 			if (client_head.tip_mesaj == 'c'){
 				stergereSocket(client_sock);
-				break;
+				printf("deconectat\n");
+				//break;
+			}
+			// daca clientul a gresit si defapt nu vrea sa se deconecteze asta e
+			else if(client_head.tip_mesaj=='m'){
+				printf("nu se deconecteaza\n");
 			}
 		}
 		// daca protocolul e respectat, dupa autentificare pot sa am doar mesaje de tipul 'd' si 'm'
@@ -241,9 +310,9 @@ int main(int argc, char const *argv[]){
 
 	int client_sock;
 	struct sockaddr_in my_addr;
-
+	
 	// creez socket-ul
-	if((server_sock = socket(PF_INET, SOCK_STREAM, 0)) < 0){
+	if((server_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 		perror("Eroare la crearea socket-ului\n");
 		exit(EXIT_FAILURE);
 	}
@@ -251,7 +320,9 @@ int main(int argc, char const *argv[]){
 	// asociez socket-ului creat o adresa IP si un port
 	my_addr.sin_family = AF_INET;
 	my_addr.sin_port = htons(SERVER_PORT);
-	inet_pton(PF_INET, SERVER_ADDRESS, &my_addr.sin_addr);
+	if(inet_pton(AF_INET, SERVER_ADDRESS, &my_addr.sin_addr)!=1){
+		printf("Nu am putut convertii adresa");
+	}
 
 	if(bind(server_sock, (struct sockaddr*)&my_addr, sizeof(my_addr)) < 0){
 		perror("Eroare la executarea apelului bind\n");
@@ -293,6 +364,6 @@ int main(int argc, char const *argv[]){
 	}
 
 	// pthread_join !!!!!!!
-
+	
 	return -1;
 }

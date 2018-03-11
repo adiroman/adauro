@@ -13,7 +13,7 @@
 #include <netdb.h>
 
 #define SERVER_PORT		5679
-#define SERVER_ADDRESS	"127.0.0.1"
+#define SERVER_ADDRESS	"192.168.0.110"
 #define SERVER_MAX_CONNECTION	4
 
 int set_addr ( struct sockaddr_in *addr , char *name, u_int32_t inaddr, short sin_port) {
