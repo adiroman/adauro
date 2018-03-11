@@ -50,10 +50,9 @@ char citireHeader_TipMesaj(int fd){
 		perror("Eroare la citirea campului tip_mesaj din header\n");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	return buffer[0];
 }
-
 int citireHeader_Lungime(int fd){
 	char buffer[4];
 	int nr;
@@ -67,7 +66,6 @@ int citireHeader_Lungime(int fd){
 	
 	return nr;
 }
-
 char* citireBody(int fd, int len){
 
 	char* buffer;
@@ -255,7 +253,6 @@ int main(int argc, char const *argv[]){
 				else{
 					printf("neconfirmat %c\n",my_head.tip_mesaj);
 				}
-
 			}else{
 				my_head.tip_mesaj = 'd';
 				my_head.len = 0;

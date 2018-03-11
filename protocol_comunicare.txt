@@ -1,20 +1,21 @@
 @@@ Autentificare @@@
 Client -> Server | pachet cu numele de utilizator
-Server -> Client | pachet de confirmare sau de eroare (in cazul in care utilizatorul nu exista)
+Server -> Client | pachet de confirmare sau de eroare   (in cazul in care utilizatorul nu exista)
 Client -> Server | pachet cu parola
-Server -> Client | pachet de confirmare sau de eroare (in cazul in care parola este gresita)
+Server -> Client | pachet de confirmare sau de eroare   (in cazul in care parola este gresita)
 
 
 @@@ Trimitere de mesaje text @@@
 Client -> Server | pachet cu mesaj de tip text
 Server -> Client | pachet de cofirmare
 Server -> Client | mesajul de tip text primit de server va fi trimis catre toti utilizatorii conectati
-Client -> Server | pachete de confirmare de la toti utilizatorii conectati
 
 
 @@@ Deconectare de la server @@@
+	^[
 Client -> Server | pachet cu cerere de deconectare
 Server -> Client | pachet pentru confirmarea cererii de deconectare
+	Are you sure you want to deconect?[y/n]
 Client -> Server | pachet de confirmare a deconectarii
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,8 +40,8 @@ OBSERVATIE! Headerul il trimit intotdeauna complet, prima data header.tip_mesaj 
 @@@ Body pachet -> il citesc doar dupa ce citesc header-ul @@@
 
 -> char *mesaj;	| mesajul de tip text care va fi trimit intre client si server si invers (daca tip_mesaj = 'm')
-				| numele de utilizator (daca tip_mesaj = 'u')
-				| parola (daca tip_mesaj = 'p')
+		| numele de utilizator (daca tip_mesaj = 'u')
+		| parola (daca tip_mesaj = 'p')
 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -77,5 +78,13 @@ Serverul considera ca datele trimise de client sunt valide.
 
 #define MAX_USERNAME	50
 #define MAX_PASSWORD	100
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+GRUP de comunicare:
+
+-> in fisierul cu nume de utilizatori si parola va fi mentionat si grupul din care va face fiecare utilizator
+-> grupul se va da sub forma unui numar natural pozitiv (0, 1, ...)
+
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
