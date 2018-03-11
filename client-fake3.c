@@ -116,12 +116,12 @@ int main(int argc, char const *argv[])
 	
 
 	my_head.tip_mesaj = 'u';
-	my_head.len = 18;
+	my_head.len = 20;
 	sprintf(buf, "%c", my_head.tip_mesaj);
 	write(server_sock, buf, 1);
 	sprintf(buf, "%d", my_head.len);
 	write(server_sock, buf, 4);
-	sprintf(buf, "utilizat_fals_2");
+	sprintf(buf, "utilizator_fals_3");
 	write(server_sock, buf, strlen(buf));
 
 
@@ -129,28 +129,29 @@ int main(int argc, char const *argv[])
 	printf("Lungime mesaj: %d\n", citireHeader_Lungime(server_sock));
 
 	my_head.tip_mesaj = 'p';
-	my_head.len = 5;
+	my_head.len = 10;
 	sprintf(buf, "%c", my_head.tip_mesaj);
 	write(server_sock, buf, 1);
 	sprintf(buf, "%d", my_head.len);
 	write(server_sock, buf, 4);
-	sprintf(buf, "12345");
+	sprintf(buf, "1234567890");
 	write(server_sock, buf, 10);
 
 
 	printf("Tip mesaj: %c\n", citireHeader_TipMesaj(server_sock));
 	printf("Lungime mesaj: %d\n", citireHeader_Lungime(server_sock));
 
+	int k;
+	for (k = 0; k < 1000000000; ++k);
 
-	char ch = citireHeader_TipMesaj(server_sock);
-	printf("Tip mesaj: %c\n", ch);
-	lungimeMesaj = citireHeader_Lungime(server_sock);
-	printf("Lungime mesaj: %d\n", lungimeMesaj);
+	// printf("Tip mesaj: %c\n", citireHeader_TipMesaj(server_sock));
+	// lungimeMesaj = citireHeader_Lungime(server_sock);
+	// printf("Lungime mesaj: %d\n", lungimeMesaj);
 
-	if(ch == 'm'){
-		tmpBuffer = citireBody(server_sock, lungimeMesaj);
-		printf("%s\n", tmpBuffer);
-	}
+
+	// tmpBuffer = citireBody(server_sock, lungimeMesaj);
+	// printf("%s\n", tmpBuffer);
+
 
 	// deconectare
 

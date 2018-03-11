@@ -14,6 +14,7 @@
 
 #define SERVER_PORT		5679
 #define SERVER_ADDRESS	"192.168.0.110"
+
 #define SERVER_MAX_CONNECTION	4
 
 int set_addr ( struct sockaddr_in *addr , char *name, u_int32_t inaddr, short sin_port) {
@@ -116,12 +117,12 @@ int main(int argc, char const *argv[])
 	
 
 	my_head.tip_mesaj = 'u';
-	my_head.len = 18;
+	my_head.len = 20;
 	sprintf(buf, "%c", my_head.tip_mesaj);
 	write(server_sock, buf, 1);
 	sprintf(buf, "%d", my_head.len);
 	write(server_sock, buf, 4);
-	sprintf(buf, "utilizator_fals");
+	sprintf(buf, "utilizator_fals_1");
 	write(server_sock, buf, strlen(buf));
 
 
@@ -164,29 +165,24 @@ int main(int argc, char const *argv[])
 	printf("%s\n", tmpBuffer);
 
 
-	//%%%%%%%%%%%%%%%5
+	// deconectare
 
-	my_head.tip_mesaj = 'm';
-	sprintf(mesaj, "Mesaj fals de la utilizator fals");
-	my_head.len = strlen(mesaj);
+	my_head.tip_mesaj = 'd';
+	my_head.len = 0;
 	sprintf(buf, "%c", my_head.tip_mesaj);
 	write(server_sock, buf, 1);
 	sprintf(buf, "%d", my_head.len);
 	write(server_sock, buf, 4);
-	write(server_sock, mesaj, my_head.len);
-	
 
 	printf("Tip mesaj: %c\n", citireHeader_TipMesaj(server_sock));
 	printf("Lungime mesaj: %d\n", citireHeader_Lungime(server_sock));
 
-
-	printf("Tip mesaj: %c\n", citireHeader_TipMesaj(server_sock));
-	lungimeMesaj = citireHeader_Lungime(server_sock);
-	printf("Lungime mesaj: %d\n", lungimeMesaj);
-
-
-	tmpBuffer = citireBody(server_sock, lungimeMesaj);
-	printf("%s\n", tmpBuffer);
+	my_head.tip_mesaj = 'c';
+	my_head.len = 0;
+	sprintf(buf, "%c", my_head.tip_mesaj);
+	write(server_sock, buf, 1);
+	sprintf(buf, "%d", my_head.len);
+	write(server_sock, buf, 4);
 
 	return 0;
 }
